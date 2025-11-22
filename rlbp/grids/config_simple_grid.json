@@ -1,0 +1,17 @@
+{
+  "grid_size": 5,
+  "reward_states": {"4": 1.0},
+  "obstacle_states": [],
+  "terminal_states": [4],
+  "alpha": 3.0,
+  "beta": 1.0,
+  "num_actions": 4,
+  "start_state": 20,
+  "evidence": {"24": [1, 0, 0, 0], "0": [0, 0, 0, 1]},
+  "bp_iters": 10,
+  "run_bp": true,
+  "gamma": 0.95,
+  "pi_iters": 2000,
+  "episodes": 1000,
+  "p_correct_action": 1
+}

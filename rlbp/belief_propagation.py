@@ -2,8 +2,8 @@ import numpy  as np
 import igraph as ig
 import matplotlib.pyplot as plt
 
-from rlbp.factor import *
-from rlbp.graph  import *
+from factor import *
+from graph  import *
 
 class loopy_belief_propagation():
     def __init__(self, pgm):
@@ -36,7 +36,7 @@ class loopy_belief_propagation():
     def belief(self, v_name, num_iter):
         if self.__t > num_iter:
             raise Exception('Invalid number of iterations. Current number: ' + str(self.__t))
-        elif self.__t < num_iter:
+        elif self.__t < num_iter: # If belief propagation has already been run on this object, sequential calls to belief() instantly return the precomputed marginal
             self.__loop(num_iter)
         
         incoming_messages = []
@@ -94,3 +94,6 @@ class loopy_belief_propagation():
     
     def __normalize_msg(self, message):
         return factor(message.get_variables(), message.get_distribution()/np.sum(message.get_distribution()))
+
+    def get_t(self): # for retrieving marginals after one call to belief()
+        return self.__t
