@@ -20,6 +20,7 @@ class GridWorldConfig:
         self.pi_iters = data["pi_iters"]
         self.episodes = data["episodes"]
         self.p_correct_action = data["p_correct_action"]
+        self.print_every = data["print_every"]
 
     def __repr__(self):
         return f"<GridWorldConfig {self.__dict__}>"

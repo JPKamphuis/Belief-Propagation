@@ -177,58 +177,79 @@ def plot_factor_graph(x):
     
     return graph.show("./graph.html")
 
-# def plot_grid_factor_graph(fg):
-#     net_vis = net.Network(notebook=True, width="100%")
-#     net_vis.toggle_physics(False)
+def plot_grid_factor_graph(fg, grid_size=5):
+    """
+    Plot factor graph with variable nodes V0..V(N-1) arranged in a grid.
+    Assumes factor nodes are named like F0_1 or similar.
+    """
 
-#     g = fg.get_graph()
-#     vs = g.vs
-#     edges = g.get_edgelist()
+    net_vis = net.Network(notebook=True, width="100%")
+    net_vis.toggle_physics(False)
 
-#     # Compute positions
-#     pos = {}
-#     rows, cols = 0, 0
+    g = fg.get_graph()
+    vs = g.vs
+    edges = g.get_edgelist()
 
-#     # First, find rows and cols from variable node names
-#     for v in vs:
-#         name = v['name']
-#         if not v['is_factor']:
-#             m = re.match(r"V(\d+)(\d+)", name)
-#             if m:
-#                 r, c = int(m.group(1)), int(m.group(2))
-#                 pos[name] = (c, r)  # x=c, y=r
-#                 rows = max(rows, r+1)
-#                 cols = max(cols, c+1)
+    pos = {}
 
-#     # Place factor nodes midway between their connected variables
-#     for v in vs:
-#         if v['is_factor']:
-#             f_name = v['name']
-#             # get connected nodes
-#             connected = [vs[e.source]['name'] if vs[e.source]['name'] != f_name else vs[e.target]['name']
-#                          for e in g.es if f_name in [vs[e.source]['name'], vs[e.target]['name']]]
-#             if len(connected) == 2:
-#                 x1, y1 = pos[connected[0]]
-#                 x2, y2 = pos[connected[1]]
-#                 pos[f_name] = ((x1 + x2)/2, (y1 + y2)/2)
-#             else:
-#                 pos[f_name] = (0, 0)
+    # ---- Compute variable positions ----
+    for v in vs:
+        if not v["is_factor"]:
+            name = v["name"]  # e.g., "V17"
+            m = re.match(r"V(\d+)", name)
+            if m:
+                idx = int(m.group(1))
+                r = idx // grid_size
+                c = idx % grid_size
+                pos[name] = (c, r)   # x=c, y=r
 
-#     # Add nodes
-#     for i, v in enumerate(vs):
-#         name = v['name']
-#         label = name
-#         color = '#2E2E2E' if not v['is_factor'] else '#F2F2F2'
-#         x, y = pos[name]
-#         # scale y to invert (optional, so V_0_0 is bottom-left)
-#         net_vis.add_node(i, label=label, color=color, x=x*150, y=y*150)
+    # ---- Compute factor node positions ----
+    for v in vs:
+        if v["is_factor"]:
+            f_name = v["name"]
+            connected_vars = []
 
-#     # Add edges
-#     net_vis.add_edges(edges)
+            # find adjacent variable nodes
+            for e in g.es:
+                s = vs[e.source]["name"]
+                t = vs[e.target]["name"]
+                if f_name == s and t.startswith("V"):
+                    connected_vars.append(t)
+                elif f_name == t and s.startswith("V"):
+                    connected_vars.append(s)
 
-#     tmp_file = Path("./graph.html")
-#     webbrowser.open(tmp_file.resolve().as_uri())
-#     return
+            # place the factor node between its two variable nodes
+            if len(connected_vars) == 2:
+                x1, y1 = pos[connected_vars[0]]
+                x2, y2 = pos[connected_vars[1]]
+                pos[f_name] = ((x1 + x2) / 2, (y1 + y2) / 2)
+            else:
+                pos[f_name] = (0, 0)  # fallback for any irregular nodes
+
+    # ---- Add nodes to visualization ----
+    for i, v in enumerate(vs):
+        name = v["name"]
+        x, y = pos[name]
+
+        color = "#4DA6FF" if not v["is_factor"] else "#FFFFFF"
+        label = name
+
+        net_vis.add_node(
+            i,
+            label=label,
+            color=color,
+            x=x * 150,
+            y=y * 150
+        )
+
+    # ---- Add edges ----
+    net_vis.add_edges(edges)
+
+    # ---- Save and display ----
+    tmp_file = Path("./graph.html")
+    webbrowser.open(tmp_file.resolve().as_uri())
+    return
+
 
 # def create_grid_world_factor_graph(rows, cols, alpha, beta, num_actions=4):
 #     """

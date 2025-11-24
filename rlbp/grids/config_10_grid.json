@@ -31,11 +31,13 @@
   "beta": 1.0,
   "num_actions": 4,
   "start_state": 90,
-  "evidence": {"0": [0, 0, 0, 1], "90": [1, 0, 0, 0], "40": [0, 0, 0, 1]},
+  "evidence": {"0": [0, 0, 0, 1], "90": [1, 0, 0, 0], "29": [1, 0, 0, 0]},
   "bp_iters": 30,
   "run_bp": true,
   "gamma": 0.95,
   "pi_iters": 5000,
   "episodes": 2000,
-  "p_correct_action": 0.8
+  "p_correct_action": 0.8,
+    "print_every": 500
+
 }

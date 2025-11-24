@@ -142,5 +142,7 @@
   "gamma": 0.95,
   "pi_iters": 2000,
   "episodes": 1000,
-  "p_correct_action": 1
+  "p_correct_action": 1,
+  "print_every": 500
+
 }

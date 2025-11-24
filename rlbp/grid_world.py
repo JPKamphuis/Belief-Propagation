@@ -130,59 +130,6 @@ def softmax(x, tau=1.0):
     e = np.exp(x)
     return e / e.sum(axis=1, keepdims=True)
 
-def policy_iteration(P_actions, R, gamma, policy, cfg,
-                     alpha=0.01, tau=0.1, mix=1,
-                     iterations=5000, max_steps=100):
-    """
-    TD(0)-style policy iteration with policy mixing to preserve BP priors.
-    
-    mix: how much of the improved policy to blend in each update.
-    """
-    n_states = len(R)
-    n_actions = len(P_actions)
-    V = np.zeros(n_states)
-
-    for it in range(iterations):
-
-        # random start state
-        s = np.random.randint(n_states)
-
-        for step in range(max_steps):
-
-            # sample action using current policy
-            a = np.random.choice(n_actions, p=policy[s])
-
-            # sample next state
-            s_prime = np.random.choice(n_states, p=P_actions[a][s])
-
-            # TD(0) update
-            V[s] += alpha * (R[s] + gamma * V[s_prime] - V[s])
-
-            # compute local Q-values
-            Q = np.zeros(n_actions)
-            for a_i in range(n_actions):
-                Q[a_i] = R[s] + gamma * (P_actions[a_i][s] @ V)
-
-            # softmax improvement
-            improved = np.exp(Q / tau)
-            improved /= improved.sum()
-
-            # *** POLICY MIXING ***
-            # policy[s] = (1-mix)*old + mix*new
-            policy[s] = (1 - mix) * policy[s] + mix * improved
-            policy[s] /= policy[s].sum()
-
-            # move to next state
-            s = s_prime
-
-        # progress logging, comment out for accurate runtime
-        if it % 100 == 0:
-            print(f"Expected return from start state {cfg.start_state} "
-                  f"after {it} iterations: {monte_carlo_return(policy, R, cfg)}")
-
-    return V, policy
-
-
 def monte_carlo_return(policy, R, cfg):
     returns = []
     n_states = cfg.grid_size * cfg.grid_size
@@ -190,7 +137,7 @@ def monte_carlo_return(policy, R, cfg):
         s = cfg.start_state
         G = 0
         t = 0
-        while s not in cfg.terminal_states:
+        while s not in cfg.terminal_states and t < 500:
             a = np.random.choice(4, p=policy[s])
             s = move(s, a, cfg.grid_size) #TODO: Move doesnt use the probability of correct move
             G += (cfg.gamma**t) * R[s]
@@ -317,3 +264,85 @@ def print_policy(policy, cfg):
         print("Cell {:3d} [{}] policy: [{:.3f}, {:.3f}, {:.3f}, {:.3f}]"
               .format(i, ctype, p[0], p[1], p[2], p[3]))
 
+def sarsa(P_actions, R, gamma, policy, cfg, alpha=0.1, epsilon=0.1, iterations=5000, max_steps=200):
+    S = len(R)
+    A = len(P_actions)
+
+    # Initialize Q with the BP prior
+    Q = np.log(np.clip(policy, 1e-8, None))
+    Q = Q - np.max(Q, axis=1, keepdims=True)
+    Q = np.nan_to_num(Q, nan=0.0, posinf=0.0, neginf=0.0)
+
+    def epsilon_greedy(q_row):
+        """Return action using ε-greedy policy."""
+        if np.random.rand() < epsilon:
+            return np.random.randint(A)
+        return np.argmax(q_row)
+
+    for it in range(iterations):
+        s = np.random.randint(S)
+        a = epsilon_greedy(Q[s])
+
+        for step in range(max_steps):
+            s_prime = np.random.choice(S, p=P_actions[a][s])
+            a_prime = epsilon_greedy(Q[s_prime])
+
+            # TD target and update
+            td_target = R[s] + gamma * Q[s_prime, a_prime]
+            td_error  = td_target - Q[s, a]
+            Q[s, a]  += alpha * td_error
+
+            # Transition
+            s, a = s_prime, a_prime
+
+            # Stop episode if terminal
+            if R[s] != 0:
+                break
+
+        if it % cfg.print_every == 0:
+            print(f"Expected return from start state {cfg.start_state} "
+                  f"after {it} iterations: {monte_carlo_return(np.eye(A)[np.argmax(Q, axis=1)], R, cfg)}")
+
+    # Return greedy policy
+    policy = np.eye(A)[np.argmax(Q, axis=1)]
+    return Q, policy
+
+def policy_iteration_mix(P_actions, R, gamma, policy, cfg,
+                     alpha=0.01, tau=0.1, mix=1,
+                     iterations=5000, max_steps=100):
+    ### Worse than SARSA
+
+    n_states = len(R)
+    n_actions = len(P_actions)
+    V = np.zeros(n_states)
+
+    for it in range(iterations):
+
+        # random start state
+        s = np.random.randint(n_states)
+
+        for step in range(max_steps):
+            a = np.random.choice(n_actions, p=policy[s])
+            s_prime = np.random.choice(n_states, p=P_actions[a][s])
+            V[s] += alpha * (R[s] + gamma * V[s_prime] - V[s])
+
+            Q = np.zeros(n_actions)
+            for a_i in range(n_actions):
+                Q[a_i] = R[s] + gamma * (P_actions[a_i][s] @ V)
+
+            # softmax improvement
+            improved = np.exp(Q / tau)
+            improved /= improved.sum()
+
+            # mix
+            policy[s] = (1 - mix) * policy[s] + mix * improved
+            policy[s] /= policy[s].sum()
+
+            s = s_prime
+
+        # progress logging, comment out for accurate runtime
+        if it % 100 == 0:
+            print(f"Expected return from start state {cfg.start_state} "
+                  f"after {it} iterations: {monte_carlo_return(policy, R, cfg)}")
+
+    return V, policy

@@ -1,12 +1,13 @@
 from config import GridWorldConfig
 from grid_world import *
+from graph import plot_grid_factor_graph
 from belief_propagation import loopy_belief_propagation
 import argparse
 import time
 
 def main():
   parser = argparse.ArgumentParser(description= 'BP init for grid world')
-  parser.add_argument('-c', '--config', default='grids/config_10_grid.json',
+  parser.add_argument('-c', '--config', default='grids/config_simple_grid.json',
                       type=str, help="name of config file")
   args = parser.parse_args()
     
@@ -19,6 +20,7 @@ def main():
 
   # Build BP factor graph
   fg = make_bp_graph(cfg)
+  # plot_grid_factor_graph(fg)
 
   # Run loopy belief propagation
   bp_start = time.time()
@@ -36,10 +38,11 @@ def main():
 
   # Run value iteration algorithm
   mix = 1
-  if(cfg.run_bp): mix = 0.3
+  if(cfg.run_bp): mix = 0.5
 
   rl_start = time.time()
-  V, policy_opt = policy_iteration(P, R, cfg.gamma, policy, cfg, iterations=cfg.pi_iters, mix=mix)
+  # V, policy_opt = policy_iteration(P, R, cfg.gamma, policy, cfg, iterations=cfg.pi_iters, mix=mix)
+  Q, policy_opt = sarsa(P, R, cfg.gamma, policy, cfg, iterations = cfg.pi_iters)
   rl_end = time.time()
 
   # print_policy(policy_opt, cfg)
