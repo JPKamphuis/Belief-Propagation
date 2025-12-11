@@ -18,7 +18,7 @@ The BP initialized policies converged quicker than uniform initialized policy in
 
 
 
-# Enviroment Setup
+# Environment Setup
 environment.yml contains the conda environment with all packages needed to run the code. An environment can be created with ```conda env create -f environment.yml```
 
 # Config.py and grid world definition
